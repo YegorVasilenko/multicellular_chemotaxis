@@ -33,12 +33,13 @@ print("surface size", surface_width, "x", surface_height)
 
 
 # Setting model parameters.
+T_sim = 1000
 dt = 1
 W = 1000
-phi = 1
+phi = 5
 omega = 10**(-2)
 pump_cost = 10**(-2)
-h = 2 * 10**(-1)
+h = 5 * 10**(-1)
 k_s_1 = 2 * 10**(-4)
 k_s_2 = 2 * 10**(-5)
 k_food = 10**(-2)
@@ -200,7 +201,7 @@ def simulate(k_a, k_b, W):
     #
 
 
-    t, t_alive, V_sum = 0, 0, 0
+    t, t_alive, V_sum, W_sum = 0, 0, 0, 0
 
     active = True
     while active:
@@ -377,9 +378,13 @@ def simulate(k_a, k_b, W):
         # Update of creature's remaining energy.
         W += phi * uptake - omega * V_sum - pump_cost * (V_sum - V_sum_prev) - h - P_cilia
         W = min(max_W, W)
-        if W < 0:
-            print("life time", t_alive)
-            return t_alive
+        W_sum += W
+        if W < 0 or t_alive == T_sim:
+            #print("life time", t_alive)
+            #return t_alive
+            print("k_a", k_a, "k_b", k_b)
+            print("W", W_sum / T_sim)
+            return W_sum / T_sim
         health_bar.hp = W
         health_bar.draw(surface)
 
@@ -387,7 +392,7 @@ def simulate(k_a, k_b, W):
         pygame.display.update()
 
 
-setting_list = [(0.5, 1), (1, 1), (2, 1)]
+setting_list = [(0, 1), (0.3, 1), (0.5, 1), (0.8, 1), (1, 1), (1.3, 1), (1.5, 1), (1.8, 1), (2, 1)]
 par_list, lifetime_list = [], []
 for setting in setting_list:
     k_a, k_b = setting[0], setting[1]
@@ -397,5 +402,6 @@ for setting in setting_list:
 
 plot.scatter(par_list, lifetime_list)
 plot.xlabel(r"$k_a\ /\ k_b$")
-plot.ylabel(r"$t_{alive}$")
+#plot.ylabel(r"$t_{alive}$")
+plot.ylabel(r"$\langle W \rangle$")
 plot.savefig("figures/act inh.png")
