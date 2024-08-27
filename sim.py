@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2024, Egor Vasilenko,
@@ -59,7 +59,7 @@ g_syn = 1
 t_rise, t_fast, t_slow = 3, 0.5, 10
 a_decay = 1
 E_syn = 1
-block_size = 40
+block_size = surface_height / 16
 max_W = 1000
 P_max = 1
 P_half = 0.5
@@ -158,8 +158,8 @@ def simulate(k_a, k_b, W):
     for i in range(N_arc):
         for j in range(N_rad):
             cells.append(Cell(
-                512 + (2 + 2 * j) * radius * math.cos(2 * math.pi * i / N_arc),
-                320 + (2 + 2 * j) * radius * math.sin(2 * math.pi * i / N_arc),
+                surface_width / 2 + (2 + 2 * j) * radius * math.cos(2 * math.pi * i / N_arc),
+                surface_height / 2 + (2 + 2 * j) * radius * math.sin(2 * math.pi * i / N_arc),
                 0,
                 0,
                 0
@@ -187,7 +187,7 @@ def simulate(k_a, k_b, W):
     n = N_arc * N_rad
     for i in range(n):
         for j in range(n):
-            if i >= j: continue
+            if i == j: continue
             if dist(cells[i].x, cells[i].y, cells[j].x, cells[j].y) < fiber_length:
                 cells[i].channels.append(0)
                 cells[j].channels.append(0)
@@ -253,6 +253,13 @@ def simulate(k_a, k_b, W):
 
 
             # Interactions with other cells.
+            S_i = cell.V
+            n_adj = 0
+            for j in range(n):
+                if (i, j) not in fibers: continue
+                n_adj += 1
+                S_i += k_chan * abs(cells[j].V - cell.V)
+            S_i /= (n_adj + 1)
             for j in range(n):
                 if (i, j) not in fibers: continue
 
@@ -266,7 +273,7 @@ def simulate(k_a, k_b, W):
                 if cells[j].V > cell.V:
                     l = dist(x_1, y_1, x_2, y_2) / 2
                     S_ij = k_chan * (cells[j].V - cell.V)
-                    B = (k_a * S_ij + 2 * D_cell * k_a * 1 / k_b / l) / (k_b + 2 * D_cell / l)
+                    B = (k_a * S_ij + 2 * D_cell * k_a * S_i / k_b / l) / (k_b + 2 * D_cell / l)
                     cell.p_x += D_chan * math.cos(cells[j].theta) * B
                     cell.p_y += D_chan * math.sin(cells[j].theta) * B
 
@@ -296,11 +303,11 @@ def simulate(k_a, k_b, W):
                 cells[i].a_x += k_s_2 * dr_dt * n_x
                 cells[i].a_y += k_s_2 * dr_dt * n_y
 
-                cells[j].a_x -= k_s_1 * delta_r * n_x
-                cells[j].a_y -= k_s_1 * delta_r * n_y
+                #cells[j].a_x -= k_s_1 * delta_r * n_x
+                #cells[j].a_y -= k_s_1 * delta_r * n_y
 
-                cells[j].a_x -= k_s_2 * dr_dt * n_x
-                cells[j].a_y -= k_s_2 * dr_dt * n_y
+                #cells[j].a_x -= k_s_2 * dr_dt * n_x
+                #cells[j].a_y -= k_s_2 * dr_dt * n_y
 
 
         # Plankton dynamics.
@@ -319,7 +326,7 @@ def simulate(k_a, k_b, W):
                 elif j == grid_cols - 1:
                     diff_term_x = P_border - 2 * P[i][j] + P[i][j - 1]
                 diff_term = D * (diff_term_y + diff_term_x)
-                prod_term = (1 + math.sin(2 * math.pi * t / T - 2 * math.pi * j / grid_cols)) / 2 * prod_rate * P[i][j] * (1 - P[i][j] / P_max)# * (1 - abs(j / grid_cols - 1 / 2))
+                prod_term = (1 + math.sin(2 * math.pi * t / T - 2 * math.pi * j / grid_cols)) / 2 * prod_rate * P[i][j] * (1 - P[i][j] / P_max)
                 uptake_term = uptake_death_rate * Z[i][j] * P[i][j]**2 / (P_half**2 + P[i][j]**2)
                 P[i][j] += diff_term + prod_term - uptake_term
 
@@ -392,7 +399,7 @@ def simulate(k_a, k_b, W):
         pygame.display.update()
 
 
-setting_list = [(0, 1), (0.3, 1), (0.5, 1), (0.8, 1), (1, 1), (1.3, 1), (1.5, 1), (1.8, 1), (2, 1)]
+setting_list = [(100, 1)]
 par_list, lifetime_list = [], []
 for setting in setting_list:
     k_a, k_b = setting[0], setting[1]
