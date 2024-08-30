@@ -22,26 +22,6 @@ import os
 matplotlib.rcParams['figure.dpi'] = 300
 os.environ["PATH"] += os.pathsep + "/usr/local/texlive/2023/bin/universal-darwin"
 
-"""
-setting_list = [(0.001, 1), (0.01, 1), (0.1, 1), (1, 1), (10, 1), (100, 1), (1000, 1)]
-par_list = []
-for setting in setting_list:
-    k_a, k_b = setting[0], setting[1]
-    par_list.append(math.log10(k_a / k_b))
-#s_1 = [988.6537757488946, 993.4458362518681, 999.3705584938392, 982.6200330409675, 922.7716539470127, 836.4615559297883, 795.2683303757645]
-#s_2 = [990.2533011123636, 992.0928321699655, 999.9994175187101, 997.5587035128914, 941.9756788266765, 817.0519419232389, 879.6191020736935]
-#s_3 = [997.6832892696473, 995.5849414075782, 999.7570108528049, 997.9654684934153, 885.5005503529542, 792.0767629117213, 796.3856285796769]
-s_1 = [2323, 2356, 2818, 2566, 2093, 1254, 1040]
-s_2 =
-s_3 =
-plot.xlabel(r"$log_{10}(k_a\ /\ k_b)$")
-W_average_list = (np.array(s_1) + np.array(s_2) + np.array(s_3)) / 3
-plot.scatter(par_list, W_average_list, marker = "s", color = "black", s = 48)
-plot.ylabel(r"$\langle W \rangle$")
-plot.savefig("figures/act inh.png")
-exit(0)
-"""
-
 
 """
 Obtaining screen parameters.
@@ -484,9 +464,3 @@ elif statistics == "W_average":
     plot.ylabel(r"$\langle W \rangle$")
     print(W_average_list)
 plot.savefig("figures/act inh.png")
-
-# metabolism costs
-# Monod productivity
-# Vogel resource uptake
-# maximal organism radius WITHOUT NERVOUS SYSTEM
-# choanoblastula limits
