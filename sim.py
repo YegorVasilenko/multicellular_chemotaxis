@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-#
-# Copyright (c) 2024, Egor Vasilenko,
-# Engelhardt Institute of Molecular Biology
-# of Russian Academy of Sciences.
-# All rights reserved.
-#
+
+
+"""
+Copyright (c) 2024, Egor Vasilenko,
+Engelhardt Institute of Molecular Biology
+of Russian Academy of Sciences.
+All rights reserved.
+"""
 
 
 import itertools
@@ -20,45 +22,73 @@ import os
 matplotlib.rcParams['figure.dpi'] = 300
 os.environ["PATH"] += os.pathsep + "/usr/local/texlive/2023/bin/universal-darwin"
 
+"""
+setting_list = [(0.001, 1), (0.01, 1), (0.1, 1), (1, 1), (10, 1), (100, 1), (1000, 1)]
+par_list = []
+for setting in setting_list:
+    k_a, k_b = setting[0], setting[1]
+    par_list.append(math.log10(k_a / k_b))
+#s_1 = [988.6537757488946, 993.4458362518681, 999.3705584938392, 982.6200330409675, 922.7716539470127, 836.4615559297883, 795.2683303757645]
+#s_2 = [990.2533011123636, 992.0928321699655, 999.9994175187101, 997.5587035128914, 941.9756788266765, 817.0519419232389, 879.6191020736935]
+#s_3 = [997.6832892696473, 995.5849414075782, 999.7570108528049, 997.9654684934153, 885.5005503529542, 792.0767629117213, 796.3856285796769]
+s_1 = [2323, 2356, 2818, 2566, 2093, 1254, 1040]
+s_2 =
+s_3 =
+plot.xlabel(r"$log_{10}(k_a\ /\ k_b)$")
+W_average_list = (np.array(s_1) + np.array(s_2) + np.array(s_3)) / 3
+plot.scatter(par_list, W_average_list, marker = "s", color = "black", s = 48)
+plot.ylabel(r"$\langle W \rangle$")
+plot.savefig("figures/act inh.png")
+exit(0)
+"""
 
-# Obtaining screen parameters.
+
+"""
+Obtaining screen parameters.
+"""
 surface = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 surface_width, surface_height = pygame.display.get_surface().get_size()
 print("surface size", surface_width, "x", surface_height)
 
 
+"""
+Statistics to collect.
+"""
+statistics = "time_alive" # W_average time_alive
 
-# Simulation regime.
-#stat = False
 
-
-# Setting model parameters.
+"""
+Setting model parameters.
+"""
 T_sim = 1000
 dt = 1
 W = 1000
 phi = 5
 omega = 10**(-2)
 pump_cost = 10**(-2)
-h = 5 * 10**(-1)
+h = 1#5 * 10**(-1)
 k_s_1 = 2 * 10**(-4)
 k_s_2 = 2 * 10**(-5)
 k_food = 10**(-2)
 k_drag = 10**(-2)
-visc = 3 * 10**(-2)
-radius = 10
+visc = 2 * 10**(-2)
+radius = surface_height / 64
 fiber_length = 10 * radius
 omega_flow = 10**(-6)
 k_flow = 10**(-3)
 p_plank = 10**(-4)
-D_chan = 0.03
+D_chan = 0.3
 T = 1000
 grid_rows = 16
 grid_cols = 25
 K_d = 0.1
-g_syn = 1
+
+g_syn = 10**3
 t_rise, t_fast, t_slow = 3, 0.5, 10
-a_decay = 1
-E_syn = 1
+a_decay = 0.5
+E_syn = 0
+alpha_dec = 3
+
 block_size = surface_height / 16
 max_W = 1000
 P_max = 1
@@ -77,11 +107,16 @@ theta_rate = 0.2
 k_cilia = 1
 
 
-# Distance between two 2D points.
+"""
+Distance between two 2D points.
+"""
 def dist(x_1, y_1, x_2, y_2):
     return ((x_1 - x_2)**2 + (y_1 - y_2)**2)**(1/2)
 
 
+"""
+Angle betwen horizontal axis and (v_x, v_y) vector.
+"""
 def get_angle(v_x, v_y):
     if v_y >= 0:
         return math.acos(v_x / (v_x**2 + v_y**2)**(1/2))
@@ -89,13 +124,17 @@ def get_angle(v_x, v_y):
         return -math.acos(v_x / (v_x**2 + v_y**2)**(1/2))
 
 
-# Excitatory postsynaptic current.
+"""
+Excitatory postsynaptic current.
+"""
 def I_EPSC(t, V):
     if t < 0: return 0
     return g_syn * (1 - exp(- t / t_rise)) * (a_decay * exp(- t / t_fast) + (1 - a_decay) * exp(- t / t_slow)) * max(E_syn - V, 0)
 
 
-# Draw square grid of plankton density.
+"""
+Draw square grid of bacterial mat density.
+"""
 def draw_grid(P, surface):
     for i in range(0, grid_rows):
         for j in range(0, grid_cols):
@@ -105,8 +144,21 @@ def draw_grid(P, surface):
             pygame.draw.rect(surface, (163 * P[i][j], 177 * P[i][j], 138 * P[i][j]), rect)
 
 
-# Health bar class. Rectangle with position and size.
-# The maximum number of health points is fixed.
+"""
+Returns center of masses for the cell system.
+"""
+def get_CoM(cells):
+    c_x, c_y = 0, 0
+    for cell in cells:
+        c_x, c_y = c_x + cell.x, c_y + cell.y
+    c_x, c_y = c_x / len(cells), c_y / len(cells)
+    return c_x, c_y
+
+
+"""
+Health bar class. Rectangle with position and size.
+The maximum number of health points is fixed.
+"""
 class HealthBar():
   def __init__(self, x, y, w, h, max_hp):
     self.x = x
@@ -122,7 +174,9 @@ class HealthBar():
     pygame.draw.rect(surface, "#ccd5ae", (self.x, self.y, self.w * ratio, self.h))
 
 
-# Cell class.
+"""
+Cell class.
+"""
 class Cell:
     def __init__(self, x, y, v_x, v_y, V):
         self.x, self.y = x, y
@@ -131,15 +185,16 @@ class Cell:
         self.V = V
         self.a_x, self.a_y = 0, 0
         self.theta = 0
-        self.channels = []
-        self.A, self.R, self.I = [], [], []
+        self.activated_channels = set()
+        self.channel_timers = dict()
+        # FUTURE self.A, self.R, self.I = set(), set(), set()
         self.v_cilia = 0
 
 
 def simulate(k_a, k_b, W):
-    #
-    # Preparing the surface.
-    #
+    """
+    Preparing the surface.
+    """
 
 
     # Initiating of the creature's health bar.
@@ -158,8 +213,8 @@ def simulate(k_a, k_b, W):
     for i in range(N_arc):
         for j in range(N_rad):
             cells.append(Cell(
-                surface_width / 2 + (2 + 2 * j) * radius * math.cos(2 * math.pi * i / N_arc),
-                surface_height / 2 + (2 + 2 * j) * radius * math.sin(2 * math.pi * i / N_arc),
+                surface_width / 2 + (surface_height / 320 + surface_height / 320 * j) * radius * math.cos(2 * math.pi * i / N_arc),
+                surface_height / 2 + (surface_height / 320 + surface_height / 320 * j) * radius * math.sin(2 * math.pi * i / N_arc),
                 0,
                 0,
                 0
@@ -167,10 +222,7 @@ def simulate(k_a, k_b, W):
 
 
     # Setting initial polarizations of the cells.
-    c_x, c_y = 0, 0
-    for cell in cells:
-        c_x, c_y = c_x + cell.x, c_y + cell.y
-    c_x, c_y = c_x / len(cells), c_y / len(cells)
+    c_x, c_y = get_CoM(cells)
     for cell in cells:
         d_c = dist(cell.x, cell.y, c_x, c_y)
         n_x = (cell.x - c_x) / d_c
@@ -189,38 +241,37 @@ def simulate(k_a, k_b, W):
         for j in range(n):
             if i == j: continue
             if dist(cells[i].x, cells[i].y, cells[j].x, cells[j].y) < fiber_length:
-                cells[i].channels.append(0)
-                cells[j].channels.append(0)
                 fibers.add((i, j))
                 d[(i, j)] = dist(cells[i].x, cells[i].y, cells[j].x, cells[j].y)
                 dist_prev[(i, j)] = d[(i, j)]
 
 
-    #
-    # Stepwise simulation.
-    #
+    """
+    Stepwise simulation.
+    """
 
 
+    # Counters.
     t, t_alive, V_sum, W_sum = 0, 0, 0, 0
-
+    # Simulation state.
     active = True
     while active:
+        # Quit simulation if user suspended it.
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 active = False
 
+        # Timer tick update.
         t += 1
         t_alive += 1
         if t > T:
             t = 0
 
-        c_x, c_y = 0, 0
-        for cell in cells:
-            c_x, c_y = c_x + cell.x, c_y + cell.y
-        c_x, c_y = c_x / n, c_y / n
+
+        # Calculating center of masses.
+        c_x, c_y = get_CoM(cells)
 
 
-        # Food adsorption.
         Z = np.zeros((grid_rows, grid_cols))
         uptake = 0
 
@@ -236,18 +287,20 @@ def simulate(k_a, k_b, W):
             # Chemoattractant gradient.
             j_grid = math.floor(cell.x / block_size)
             i_grid = math.floor((cell.y - (surface_width - grid_cols * block_size) / 2) / block_size)
-            Z[i_grid][j_grid] += 1
-            uptake += nutricity * uptake_rate * P[i_grid][j_grid]**2 / (P_half**2 + P[i_grid][j_grid]**2)
-
+            if 0 <= i_grid < grid_rows and 0 <= j_grid < grid_cols:
+                Z[i_grid][j_grid] += 1
+                # Food adsorption.
+                uptake += nutricity * uptake_rate * P[i_grid][j_grid]**2 / (P_half**2 + P[i_grid][j_grid]**2)
+                c = P[i_grid][j_grid]
+            else:
+                c = 0
+            # Changing membrane receptors binding states.
             n_x, n_y = 0, 0
-            c = P[i_grid][j_grid]
             cell.V = c / (c + K_d)
             d_c = dist(cell.x, cell.y, c_x, c_y)
             n_x = (cell.x - c_x) / d_c
             n_y = (cell.y - c_y) / d_c
             if not (n_x == n_y == 0):
-                #cell.a_x += n_x / (n_x**2 + n_y**2)**(1/2) * cell.V * k_food
-                #cell.a_y += n_y / (n_x**2 + n_y**2)**(1/2) * cell.V * k_food
                 cell.p_x = n_x / (n_x**2 + n_y**2)**(1/2) * cell.V * k_food
                 cell.p_y = n_y / (n_x**2 + n_y**2)**(1/2) * cell.V * k_food
 
@@ -257,8 +310,9 @@ def simulate(k_a, k_b, W):
             n_adj = 0
             for j in range(n):
                 if (i, j) not in fibers: continue
-                n_adj += 1
-                S_i += k_chan * abs(cells[j].V - cell.V)
+                if j in cell.activated_channels:
+                    S_i += k_chan *  I_EPSC(cell.channel_timers[j], - cells[j].V + cell.V)
+                    n_adj += 1
             S_i /= (n_adj + 1)
             for j in range(n):
                 if (i, j) not in fibers: continue
@@ -270,20 +324,32 @@ def simulate(k_a, k_b, W):
 
 
                 # Channel transmissions.
-                if cells[j].V > cell.V:
+                if (cells[j].V > cell.V) and (j not in cell.activated_channels):
+                    cell.activated_channels.add(j)
+                    cell.channel_timers[j] = 0
+
+                if j in cell.activated_channels:
                     l = dist(x_1, y_1, x_2, y_2) / 2
-                    S_ij = k_chan * (cells[j].V - cell.V)
+                    S_ij = k_chan * I_EPSC(cell.channel_timers[j], - cells[j].V + cell.V)
                     B = (k_a * S_ij + 2 * D_cell * k_a * S_i / k_b / l) / (k_b + 2 * D_cell / l)
                     cell.p_x += D_chan * math.cos(cells[j].theta) * B
                     cell.p_y += D_chan * math.sin(cells[j].theta) * B
+                    cell.channel_timers[j] += 1
+                    if cell.channel_timers[j] == alpha_dec * t_slow:
+                        cell.activated_channels.remove(j)
+                        del cell.channel_timers[j]
 
 
                 # Resulting change in the direction of polarization.
-                n_p_x = cell.p_x / dist(0, 0, cell.p_x, cell.p_y)
-                n_p_y = cell.p_y / dist(0, 0, cell.p_x, cell.p_y)
+                if cell.p_x**2 + cell.p_y**2 > 0:
+                    n_p_x = cell.p_x / dist(0, 0, cell.p_x, cell.p_y)
+                    n_p_y = cell.p_y / dist(0, 0, cell.p_x, cell.p_y)
+                else:
+                    n_p_x = math.cos(cell.theta)
+                    n_p_y = math.sin(cell.theta)
                 theta_fin = get_angle(n_p_x, n_p_y)
                 cell.theta += math.sin(theta_fin - cell.theta) * theta_rate
-                while cell.theta < -2 * math.pi:
+                while cell.theta < 0:
                     cell.theta += 2 * math.pi
                 while cell.theta > 2 * math.pi:
                     cell.theta -= 2 * math.pi
@@ -302,12 +368,6 @@ def simulate(k_a, k_b, W):
 
                 cells[i].a_x += k_s_2 * dr_dt * n_x
                 cells[i].a_y += k_s_2 * dr_dt * n_y
-
-                #cells[j].a_x -= k_s_1 * delta_r * n_x
-                #cells[j].a_y -= k_s_1 * delta_r * n_y
-
-                #cells[j].a_x -= k_s_2 * dr_dt * n_x
-                #cells[j].a_y -= k_s_2 * dr_dt * n_y
 
 
         # Plankton dynamics.
@@ -366,12 +426,13 @@ def simulate(k_a, k_b, W):
 
         # Drawing cells.
         for cell in cells:
-            col_1 = tuple(255 * c for c in matplotlib.colors.to_rgb("#ffcdb2"))
-            col_2 = tuple(255 * c for c in matplotlib.colors.to_rgb("#b5838d"))
+            col_1 = tuple(255 * c for c in matplotlib.colors.to_rgb("#90e0ef"))
+            col_2 = tuple(255 * c for c in matplotlib.colors.to_rgb("#fb6f92"))
+            phase_color = (1 + math.cos(cell.theta)) / 2
             col = (
-                (1 - cell.V) * col_1[0] + cell.V * col_2[0],
-                (1 - cell.V) * col_1[1] + cell.V * col_2[1],
-                (1 - cell.V) * col_1[2] + cell.V * col_2[2]
+                (1 - phase_color) * col_1[0] + phase_color * col_2[0],
+                (1 - phase_color) * col_1[1] + phase_color * col_2[1],
+                (1 - phase_color) * col_1[2] + phase_color * col_2[2]
             )
 
             pygame.draw.circle(
@@ -386,12 +447,16 @@ def simulate(k_a, k_b, W):
         W += phi * uptake - omega * V_sum - pump_cost * (V_sum - V_sum_prev) - h - P_cilia
         W = min(max_W, W)
         W_sum += W
-        if W < 0 or t_alive == T_sim:
-            #print("life time", t_alive)
-            #return t_alive
+
+        if W < 0 or (statistics == "W_average" and t_alive == T_sim):
             print("k_a", k_a, "k_b", k_b)
-            print("W", W_sum / T_sim)
-            return W_sum / T_sim
+            if statistics == "time_alive":
+                print("life time", t_alive)
+                return t_alive
+            elif statistics == "W_average":
+                print("W", W_sum / T_sim)
+                return W_sum / T_sim
+
         health_bar.hp = W
         health_bar.draw(surface)
 
@@ -399,16 +464,29 @@ def simulate(k_a, k_b, W):
         pygame.display.update()
 
 
-setting_list = [(100, 1)]
-par_list, lifetime_list = [], []
+setting_list = [(0.001, 1), (0.01, 1), (0.1, 1), (1, 1), (10, 1), (100, 1), (1000, 1)]
+par_list, lifetime_list, W_average_list = [], [], []
 for setting in setting_list:
     k_a, k_b = setting[0], setting[1]
-    par_list.append(k_a / k_b)
-    lifetime_list.append(simulate(k_a, k_b, W))
+    par_list.append(math.log10(k_a / k_b))
+    if statistics == "time_alive":
+        lifetime_list.append(simulate(k_a, k_b, W))
+    else:
+        W_average_list.append(simulate(k_a, k_b, W))
 
-
-plot.scatter(par_list, lifetime_list)
-plot.xlabel(r"$k_a\ /\ k_b$")
-#plot.ylabel(r"$t_{alive}$")
-plot.ylabel(r"$\langle W \rangle$")
+plot.xlabel(r"$log_{10}(k_a\ /\ k_b)$")
+if statistics == "time_alive":
+    plot.scatter(par_list, lifetime_list, marker = "s", color = "black", s = 24)
+    plot.ylabel(r"$t_{alive}$")
+    print(lifetime_list)
+elif statistics == "W_average":
+    plot.scatter(par_list, W_average_list, marker = "s", color = "black", s = 24)
+    plot.ylabel(r"$\langle W \rangle$")
+    print(W_average_list)
 plot.savefig("figures/act inh.png")
+
+# metabolism costs
+# Monod productivity
+# Vogel resource uptake
+# maximal organism radius WITHOUT NERVOUS SYSTEM
+# choanoblastula limits
