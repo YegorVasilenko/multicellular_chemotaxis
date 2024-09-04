@@ -3,10 +3,26 @@
 
 
 """
-Copyright (c) 2024, Egor Vasilenko,
-Engelhardt Institute of Molecular Biology
-of Russian Academy of Sciences.
-All rights reserved.
+Copyright (c) 2024 Egor Vasilenko and others
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
 
@@ -43,10 +59,10 @@ Setting model parameters.
 T_sim = 1000
 dt = 1
 W = 1000
-phi = 5
+phi = 5 * 2
 omega = 10**(-2)
 pump_cost = 10**(-2)
-h = 1#5 * 10**(-1)
+h = 10**(-1)#1#5 * 10**(-1)
 k_s_1 = 2 * 10**(-4)
 k_s_2 = 2 * 10**(-5)
 k_food = 10**(-2)
@@ -171,7 +187,7 @@ class Cell:
         self.v_cilia = 0
 
 
-def simulate(k_a, k_b, W):
+def simulate(N_rad, k_a, k_b, W):
     """
     Preparing the surface.
     """
@@ -424,7 +440,7 @@ def simulate(k_a, k_b, W):
 
 
         # Update of creature's remaining energy.
-        W += phi * uptake - omega * V_sum - pump_cost * (V_sum - V_sum_prev) - h - P_cilia
+        W += phi * uptake - omega * V_sum - pump_cost * (V_sum - V_sum_prev) - h * N_arc * N_rad - P_cilia
         W = min(max_W, W)
         W_sum += W
 
@@ -444,17 +460,22 @@ def simulate(k_a, k_b, W):
         pygame.display.update()
 
 
-setting_list = [(0.001, 1), (0.01, 1), (0.1, 1), (1, 1), (10, 1), (100, 1), (1000, 1)]
+#setting_list = [(0.001, 1), (0.01, 1), (0.1, 1), (1, 1), (10, 1), (100, 1), (1000, 1)]
 par_list, lifetime_list, W_average_list = [], [], []
+setting_list = [1, 2, 3, 4, 5]
+k_a, k_b = 0.1, 1
 for setting in setting_list:
-    k_a, k_b = setting[0], setting[1]
-    par_list.append(math.log10(k_a / k_b))
+    #k_a, k_b = setting[0], setting[1]
+    #par_list.append(math.log10(k_a / k_b))
+    print("N_rad =", setting)
+    par_list.append(setting)
     if statistics == "time_alive":
-        lifetime_list.append(simulate(k_a, k_b, W))
+        lifetime_list.append(simulate(setting, k_a, k_b, W))
     else:
-        W_average_list.append(simulate(k_a, k_b, W))
+        W_average_list.append(simulate(setting, k_a, k_b, W))
 
-plot.xlabel(r"$log_{10}(k_a\ /\ k_b)$")
+#plot.xlabel(r"$log_{10}(k_a\ /\ k_b)$")
+plot.xlabel(r"$N_r$")
 if statistics == "time_alive":
     plot.scatter(par_list, lifetime_list, marker = "s", color = "black", s = 24)
     plot.ylabel(r"$t_{alive}$")
